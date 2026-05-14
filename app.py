@@ -272,6 +272,7 @@ with st.sidebar:
         "Rating: high → low",
         "Reviews: most first",
         "Distance: closest first",
+        "Most liked (votes)",
     ], label_visibility="collapsed")
 
     st.divider()
@@ -325,15 +326,23 @@ if need_iron:
 df = df[df["Max Guests"] >= min_guests]
 
 # Sort
-sort_map = {
-    "Price: low → high": ("Fee/night (IDR)", True),
-    "Price: high → low": ("Fee/night (IDR)", False),
-    "Rating: high → low": ("Rating", False),
-    "Reviews: most first": ("Reviews", False),
-    "Distance: closest first": ("distance_km", True),
-}
-sort_col, sort_asc = sort_map[sort_by]
-df = df.sort_values(sort_col, ascending=sort_asc, na_position="last").reset_index(drop=True)
+if sort_by == "Most liked (votes)":
+    try:
+        _sv = fetch_votes()
+    except Exception:
+        _sv = {}
+    df["vote_score"] = df["Name"].apply(lambda n: sum(_sv.get(n, {}).values()))
+    df = df.sort_values("vote_score", ascending=False, na_position="last").reset_index(drop=True)
+else:
+    sort_map = {
+        "Price: low → high": ("Fee/night (IDR)", True),
+        "Price: high → low": ("Fee/night (IDR)", False),
+        "Rating: high → low": ("Rating", False),
+        "Reviews: most first": ("Reviews", False),
+        "Distance: closest first": ("distance_km", True),
+    }
+    sort_col, sort_asc = sort_map[sort_by]
+    df = df.sort_values(sort_col, ascending=sort_asc, na_position="last").reset_index(drop=True)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
