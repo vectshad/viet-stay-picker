@@ -9,6 +9,7 @@ from streamlit_folium import st_folium
 
 from data_loader import load_stays, get_filter_options
 from map_builder import build_stays_map
+from votes import VOTERS, fetch_votes, upsert_vote, delete_vote
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -119,6 +120,8 @@ if "active_tab" not in st.session_state:
     st.session_state.active_tab = "cards"
 if "open_detail" not in st.session_state:
     st.session_state.open_detail = None
+if "voter" not in st.session_state:
+    st.session_state.voter = None
 
 
 def toggle_compare(name: str):
@@ -276,6 +279,15 @@ with st.sidebar:
     show_itin = st.toggle("Show itinerary stops", value=False)
 
     st.divider()
+    st.markdown("**👤 Your name**")
+    _v_opts = ["— select —"] + VOTERS
+    _v_idx = (_v_opts.index(st.session_state.voter)
+              if st.session_state.voter in _v_opts else 0)
+    _v_sel = st.selectbox("", _v_opts, index=_v_idx, label_visibility="collapsed")
+    if _v_sel != "— select —":
+        st.session_state.voter = _v_sel
+
+    st.divider()
     st.caption(f"📁 Source: `stays.xlsx`")
     if len(df_all):
         st.caption(f"Total properties: {len(df_all)}")
@@ -340,6 +352,19 @@ def star_str(rating) -> str:
     return "★" * filled + "☆" * (5 - filled) + f"  {rating:.1f}"
 
 
+def _vote_tally_html(prop_votes: dict) -> str:
+    if not prop_votes:
+        return ""
+    ups = sum(1 for v in prop_votes.values() if v == 1)
+    downs = sum(1 for v in prop_votes.values() if v == -1)
+    parts = []
+    if ups:
+        parts.append(f'<span style="color:#4ade80">👍 {ups}</span>')
+    if downs:
+        parts.append(f'<span style="color:#f87171">👎 {downs}</span>')
+    return f'<div style="font-size:12px;margin-top:4px">{"&nbsp;&nbsp;".join(parts)}</div>'
+
+
 def amenity_pill(label: str, val: str) -> str:
     cls = "yes" if val.startswith("Yes") else ("no" if val == "No" else "")
     icon = "✓" if val.startswith("Yes") else ("✗" if val == "No" else "")
@@ -382,8 +407,8 @@ button[data-testid="baseButton-tabNav"].active-tab {
 </style>
 """, unsafe_allow_html=True)
 
-_tab_cols = st.columns([1.3, 1.3, 1.3, 5])
-_tabs = [("cards", "🃏 Card view"), ("compare", "⚖️ Compare"), ("map", "🗺️ Map view")]
+_tab_cols = st.columns([1.3, 1.3, 1.3, 1.3, 3.5])
+_tabs = [("cards", "🃏 Cards"), ("compare", "⚖️ Compare"), ("map", "🗺️ Map"), ("vote", "🗳️ Vote")]
 for _col, (_key, _label) in zip(_tab_cols, _tabs):
     with _col:
         if st.button(_label, key=f"tabnav_{_key}", use_container_width=True):
@@ -402,6 +427,11 @@ if _active == "cards":
                     '<small>Try relaxing the price range or amenity toggles.</small></div>',
                     unsafe_allow_html=True)
     else:
+        try:
+            _votes_data = fetch_votes()
+        except Exception:
+            _votes_data = {}
+
         cols = st.columns(3)
         for idx, row in df.iterrows():
             col = cols[idx % 3]
@@ -441,6 +471,7 @@ if _active == "cards":
                     + (f'<div style="font-size:13px;color:#888;margin-top:2px;'
                        f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
                        f'📝 {row["Remarks"]}</div>' if row["Remarks"] else '')
+                    + _vote_tally_html(_votes_data.get(row["Name"], {}))
                     + f'</div>'
                     f'</div>',
                     unsafe_allow_html=True,
@@ -566,3 +597,97 @@ if _active == "map":
             for _, r in no_coords.iterrows():
                 st.markdown(f"- **{r['Name']}** ({r['Location']}) — Maps URL is empty or shortened. "
                             f"Use full Google Maps URL with coordinates for this marker to appear.")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TAB 4 — VOTE
+# ──────────────────────────────────────────────────────────────────────────────
+if _active == "vote":
+    voter = st.session_state.voter
+
+    if not voter:
+        st.info("👆 Select your name in the sidebar to start voting.")
+
+    try:
+        votes_data = fetch_votes()
+        _votes_ok = True
+    except Exception as e:
+        st.error(f"Could not connect to vote database: {e}")
+        votes_data = {}
+        _votes_ok = False
+
+    # Sort all properties by score descending
+    props_scored = []
+    for _, row in df_all.iterrows():
+        pv = votes_data.get(row["Name"], {})
+        props_scored.append((sum(pv.values()), row, pv))
+    props_scored.sort(key=lambda x: -x[0])
+
+    # Header row
+    h1, h2, h3, h4 = st.columns([3, 2, 2, 2])
+    for col, txt in zip([h1, h2, h3, h4], ["Property", "Score", "Votes", "Your vote"]):
+        col.markdown(f'<span style="font-size:11px;font-weight:600;text-transform:uppercase;'
+                     f'letter-spacing:.06em;color:#888">{txt}</span>', unsafe_allow_html=True)
+    st.markdown('<hr style="margin:4px 0 8px;border-color:#333">', unsafe_allow_html=True)
+
+    for score, row, pv in props_scored:
+        c_prop, c_score, c_voters, c_btn = st.columns([3, 2, 2, 2])
+
+        with c_prop:
+            loc_color = {"Da Nang": "#378ADD", "HCM": "#1D9E75"}.get(row["Location"], "#888")
+            st.markdown(
+                f'<div style="font-size:14px;font-weight:600">{row["Name"]}</div>'
+                f'<div style="font-size:12px;color:{loc_color}">{row["Location"]} · '
+                f'{format_price(row["Fee/night (IDR)"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+        with c_score:
+            score_color = "#4ade80" if score > 0 else ("#f87171" if score < 0 else "#888")
+            sign = "+" if score > 0 else ""
+            st.markdown(
+                f'<div style="font-size:22px;font-weight:700;color:{score_color}">'
+                f'{sign}{score}</div>',
+                unsafe_allow_html=True,
+            )
+
+        with c_voters:
+            chips = ""
+            for v in VOTERS:
+                vote = pv.get(v)
+                if vote == 1:
+                    chips += (f'<span style="background:#14532d;color:#4ade80;font-size:11px;'
+                              f'padding:2px 7px;border-radius:20px;margin:2px 2px 0 0;'
+                              f'display:inline-block">👍 {v}</span>')
+                elif vote == -1:
+                    chips += (f'<span style="background:#450a0a;color:#f87171;font-size:11px;'
+                              f'padding:2px 7px;border-radius:20px;margin:2px 2px 0 0;'
+                              f'display:inline-block">👎 {v}</span>')
+                else:
+                    chips += (f'<span style="background:#2a2a28;color:#666;font-size:11px;'
+                              f'padding:2px 7px;border-radius:20px;margin:2px 2px 0 0;'
+                              f'display:inline-block">— {v}</span>')
+            st.markdown(chips, unsafe_allow_html=True)
+
+        with c_btn:
+            if voter and _votes_ok:
+                my_vote = pv.get(voter)
+                b1, b2 = st.columns(2)
+                with b1:
+                    lbl = "👍 ✓" if my_vote == 1 else "👍"
+                    if st.button(lbl, key=f"vup_{row['Name']}", use_container_width=True):
+                        if my_vote == 1:
+                            delete_vote(row["Name"], voter)
+                        else:
+                            upsert_vote(row["Name"], voter, 1)
+                        st.rerun()
+                with b2:
+                    lbl = "👎 ✓" if my_vote == -1 else "👎"
+                    if st.button(lbl, key=f"vdn_{row['Name']}", use_container_width=True):
+                        if my_vote == -1:
+                            delete_vote(row["Name"], voter)
+                        else:
+                            upsert_vote(row["Name"], voter, -1)
+                        st.rerun()
+
+        st.markdown('<hr style="margin:6px 0;border-color:#222">', unsafe_allow_html=True)
