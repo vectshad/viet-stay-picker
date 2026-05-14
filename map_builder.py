@@ -111,6 +111,66 @@ def build_stays_map(
 
     stays_group.add_to(m)
 
+    # --- Reference points (always shown) ---
+    REF_POINTS = [
+        {"name": "My Khe Beach",          "lat": 16.062, "lon": 108.247, "icon": "umbrella-beach", "color": "green"},
+        {"name": "Ben Thanh Market",      "lat": 10.773, "lon": 106.698, "icon": "shopping-bag",   "color": "blue"},
+        {"name": "Ba Na Hills",           "lat": 15.995, "lon": 107.996, "icon": "mountain",       "color": "orange"},
+        {"name": "Hoi An Old Town",       "lat": 15.877, "lon": 108.329, "icon": "landmark",       "color": "purple"},
+        {"name": "Da Nang Airport",       "lat": 16.057, "lon": 108.203, "icon": "plane",          "color": "cadetblue"},
+        {"name": "Tan Son Nhat Airport",  "lat": 10.817, "lon": 106.657, "icon": "plane",          "color": "cadetblue"},
+    ]
+    ref_group = folium.FeatureGroup(name="📌 Reference points")
+    for ref in REF_POINTS:
+        folium.Marker(
+            location=[ref["lat"], ref["lon"]],
+            tooltip=f"📌 {ref['name']}",
+            popup=folium.Popup(
+                f'<div style="font-family:sans-serif;font-size:13px;font-weight:600">'
+                f'📌 {ref["name"]}</div>',
+                max_width=180,
+            ),
+            icon=folium.Icon(color=ref["color"], icon=ref["icon"], prefix="fa"),
+        ).add_to(ref_group)
+    ref_group.add_to(m)
+
+    # --- HCM Districts layer ---
+    HCM_DISTRICTS = [
+        {"name": "D1",         "lat": 10.775, "lon": 106.700, "visited": True},
+        {"name": "D2",         "lat": 10.793, "lon": 106.737, "visited": True},
+        {"name": "D3",         "lat": 10.779, "lon": 106.688, "visited": True},
+        {"name": "D4",         "lat": 10.759, "lon": 106.702, "visited": False},
+        {"name": "D5",         "lat": 10.755, "lon": 106.662, "visited": True},
+        {"name": "D6",         "lat": 10.748, "lon": 106.637, "visited": False},
+        {"name": "D7",         "lat": 10.733, "lon": 106.718, "visited": False},
+        {"name": "D8",         "lat": 10.742, "lon": 106.662, "visited": False},
+        {"name": "D9",         "lat": 10.842, "lon": 106.777, "visited": True},
+        {"name": "D10",        "lat": 10.774, "lon": 106.666, "visited": False},
+        {"name": "D11",        "lat": 10.763, "lon": 106.650, "visited": False},
+        {"name": "D12",        "lat": 10.859, "lon": 106.648, "visited": False},
+        {"name": "Bình Thạnh", "lat": 10.812, "lon": 106.714, "visited": False},
+        {"name": "Gò Vấp",    "lat": 10.838, "lon": 106.670, "visited": False},
+        {"name": "Phú Nhuận", "lat": 10.800, "lon": 106.680, "visited": False},
+        {"name": "Tân Bình",  "lat": 10.800, "lon": 106.653, "visited": False},
+        {"name": "Tân Phú",   "lat": 10.793, "lon": 106.627, "visited": False},
+        {"name": "Bình Tân",  "lat": 10.763, "lon": 106.615, "visited": False},
+        {"name": "Thủ Đức",  "lat": 10.855, "lon": 106.763, "visited": False},
+    ]
+    dist_group = folium.FeatureGroup(name="🏙 HCM Districts")
+    for d in HCM_DISTRICTS:
+        bg = "#E8593C" if d["visited"] else "#888780"
+        label = (
+            f'<div style="background:{bg};color:white;font-size:10px;font-weight:700;'
+            f'padding:2px 5px;border-radius:3px;white-space:nowrap;'
+            f'box-shadow:0 1px 3px rgba(0,0,0,.35)">{d["name"]}</div>'
+        )
+        folium.Marker(
+            location=[d["lat"], d["lon"]],
+            tooltip=f'🏙 {d["name"]}{"  ★ itinerary" if d["visited"] else ""}',
+            icon=folium.DivIcon(html=label, icon_size=(60, 20), icon_anchor=(30, 10)),
+        ).add_to(dist_group)
+    dist_group.add_to(m)
+
     # --- Itinerary stops layer (optional) ---
     if itinerary_stops:
         itin_group = folium.FeatureGroup(name="📍 Itinerary stops")
