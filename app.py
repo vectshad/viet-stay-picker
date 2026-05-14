@@ -488,12 +488,17 @@ if _active == "cards":
 
                 _voter = st.session_state.voter
                 _my_vote = _votes_data.get(row["Name"], {}).get(_voter) if _voter else None
-                d_col, up_col, dn_col = st.columns([2, 1, 1])
-                with d_col:
+                c_det, c_cmp, c_up, c_dn = st.columns(4)
+                with c_det:
                     if st.button("Details", key=f"det_{idx}", use_container_width=True):
                         st.session_state.open_detail = row["Name"]
                         st.rerun()
-                with up_col:
+                with c_cmp:
+                    compare_label = "✓ In" if is_selected else "+ Cmp"
+                    if st.button(compare_label, key=f"cmp_{idx}", use_container_width=True):
+                        toggle_compare(row["Name"])
+                        st.rerun()
+                with c_up:
                     lbl = "👍 ✓" if _my_vote == 1 else "👍"
                     if st.button(lbl, key=f"cup_{idx}", use_container_width=True, disabled=not _voter):
                         if _my_vote == 1:
@@ -501,7 +506,7 @@ if _active == "cards":
                         else:
                             upsert_vote(row["Name"], _voter, 1)
                         st.rerun()
-                with dn_col:
+                with c_dn:
                     lbl = "👎 ✓" if _my_vote == -1 else "👎"
                     if st.button(lbl, key=f"cdn_{idx}", use_container_width=True, disabled=not _voter):
                         if _my_vote == -1:
@@ -509,18 +514,6 @@ if _active == "cards":
                         else:
                             upsert_vote(row["Name"], _voter, -1)
                         st.rerun()
-                c1, c2, c3 = st.columns([2, 1, 1])
-                with c1:
-                    compare_label = "✓ Selected" if is_selected else "+ Compare"
-                    if st.button(compare_label, key=f"cmp_{idx}", use_container_width=True):
-                        toggle_compare(row["Name"])
-                        st.rerun()
-                with c2:
-                    if row["Link"]:
-                        st.link_button("Airbnb", row["Link"], use_container_width=True)
-                with c3:
-                    if row["Maps"]:
-                        st.link_button("Maps", row["Maps"], use_container_width=True)
 
 # ── Detail dialog trigger ─────────────────────────────────────────────────────
 if st.session_state.open_detail:
