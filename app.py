@@ -507,6 +507,13 @@ if _active == "cards":
                         else:
                             upsert_vote(row["Name"], _voter, -1)
                         st.rerun()
+                c_ab, c_mp = st.columns(2)
+                with c_ab:
+                    if row["Link"]:
+                        st.link_button("Airbnb", row["Link"], use_container_width=True)
+                with c_mp:
+                    if row["Maps"]:
+                        st.link_button("Maps", row["Maps"], use_container_width=True)
 
 # ── Detail dialog trigger ─────────────────────────────────────────────────────
 if st.session_state.open_detail:
