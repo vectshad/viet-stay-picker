@@ -26,17 +26,42 @@ st.markdown("""
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .block-container { padding-top: 1.2rem; padding-bottom: 2rem; }
 
-.prop-card {
+/* Card container via :has() — vote buttons live inside */
+span.card-anchor { display: none; }
+div[data-testid="stVerticalBlock"]:has(.card-anchor) {
     background: white;
     border: 1px solid #e8e7e1;
     border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
     transition: box-shadow 0.15s, transform 0.15s;
     cursor: pointer;
 }
-.prop-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
-.prop-card.selected { border-color: #1a1a18; border-width: 2px; }
+div[data-testid="stVerticalBlock"]:has(.card-anchor):hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,.12);
+    transform: translateY(-2px);
+}
+div[data-testid="stVerticalBlock"]:has(.card-sel) {
+    border: 2px solid #1a1a18 !important;
+}
+div[data-testid="stVerticalBlock"]:has(.card-anchor) > div {
+    margin-bottom: 0 !important; padding-bottom: 0 !important;
+}
+div[data-testid="stVerticalBlock"]:has(.card-anchor) [data-testid="stHorizontalBlock"] {
+    border-top: 1px solid #f0efe8;
+    padding: 6px 8px !important;
+    background: white;
+}
+div[data-testid="stVerticalBlock"]:has(.card-anchor) [data-testid="stHorizontalBlock"] button {
+    background: white !important; border: 1px solid #e0dfd9 !important;
+    color: #444 !important; font-size: 18px !important; border-radius: 8px !important;
+}
+div[data-testid="stVerticalBlock"]:has(.card-anchor) [data-testid="stHorizontalBlock"] button:hover {
+    background: #f8f7f3 !important;
+}
+div[data-testid="stVerticalBlock"]:has(.card-anchor) [data-testid="stHorizontalBlock"] button:disabled {
+    opacity: 0.35 !important;
+}
 
 .card-img-wrap {
     width: 100%; height: 160px; overflow: hidden;
@@ -448,71 +473,78 @@ if _active == "cards":
             card_cls = "prop-card selected" if is_selected else "prop-card"
 
             with col:
-                # Photo
-                photo_html = ""
-                if row["Photo URL"]:
-                    photo_html = f'<img src="{row["Photo URL"]}" alt="{row["Name"]}" />'
-                else:
-                    photo_html = '<div class="no-photo">No photo</div>'
-
-                loc_cls = loc_badge_class(row["Location"])
-                st.markdown(
-                    f'<div class="{card_cls}">'
-                    f'<div class="card-img-wrap">'
-                    f'{photo_html}'
-                    f'<span class="loc-badge {loc_cls}">{row["Location"]}</span>'
-                    f'<span class="dist-badge">{row["Distance Category"]}</span>'
-                    f'</div>'
-                    f'<div class="card-body">'
-                    f'<div class="card-name">{row["Name"]}</div>'
-                    f'<div class="card-price">{format_price(row["Fee/night (IDR)"])} '
-                    f'<span>/ night</span></div>'
-                    f'<div class="card-rating">{star_str(row["Rating"])} '
-                    f'<span style="color:#aaa">({row["Reviews"]} reviews)</span></div>'
-                    f'<div class="card-meta">{row["Bedroom"]}BR · {row["Bed"]} beds · '
-                    f'max {row["Max Guests"]} guests</div>'
-                    f'<div class="amenity-row">'
-                    f'{amenity_pill("Beach view", row["Beach View"])}'
-                    f'{amenity_pill("Pool", row["Pool"])}'
-                    f'{amenity_pill("Washer", row["Washing Machine"])}'
-                    f'{amenity_pill("Iron", row["Iron"])}'
-                    f'</div>'
-                    + (f'<div style="font-size:13px;color:#888;margin-top:2px;'
-                       f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-                       f'📝 {row["Remarks"]}</div>' if row["Remarks"] else '')
-                    + _vote_tally_html(_votes_data.get(row["Name"], {}))
-                    + f'</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
                 _voter = st.session_state.voter
                 _my_vote = _votes_data.get(row["Name"], {}).get(_voter) if _voter else None
-                c_det, c_cmp, c_up, c_dn = st.columns(4)
-                with c_det:
+                photo_html = (f'<img src="{row["Photo URL"]}" alt="{row["Name"]}" />'
+                              if row["Photo URL"] else '<div class="no-photo">No photo</div>')
+                loc_cls = loc_badge_class(row["Location"])
+
+                with st.container():
+                    # CSS anchor — also carries selected state
+                    st.markdown(
+                        f'<span class="card-anchor{"card-sel" if is_selected else ""}"></span>',
+                        unsafe_allow_html=True,
+                    )
+                    # Photo + location/distance badges
+                    st.markdown(
+                        f'<div class="card-img-wrap">{photo_html}'
+                        f'<span class="loc-badge {loc_cls}">{row["Location"]}</span>'
+                        f'<span class="dist-badge">{row["Distance Category"]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    # Card body
+                    st.markdown(
+                        f'<div class="card-body">'
+                        f'<div class="card-name">{row["Name"]}</div>'
+                        f'<div class="card-price">{format_price(row["Fee/night (IDR)"])} '
+                        f'<span>/ night</span></div>'
+                        f'<div class="card-rating">{star_str(row["Rating"])} '
+                        f'<span style="color:#aaa">({row["Reviews"]} reviews)</span></div>'
+                        f'<div class="card-meta">{row["Bedroom"]}BR · {row["Bed"]} beds · '
+                        f'max {row["Max Guests"]} guests</div>'
+                        f'<div class="amenity-row">'
+                        f'{amenity_pill("Beach view", row["Beach View"])}'
+                        f'{amenity_pill("Pool", row["Pool"])}'
+                        f'{amenity_pill("Washer", row["Washing Machine"])}'
+                        f'{amenity_pill("Iron", row["Iron"])}'
+                        f'</div>'
+                        + (f'<div style="font-size:13px;color:#888;margin-top:2px;'
+                           f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+                           f'📝 {row["Remarks"]}</div>' if row["Remarks"] else '')
+                        + _vote_tally_html(_votes_data.get(row["Name"], {}))
+                        + f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    # Vote buttons — inside the card container
+                    vc1, vc2 = st.columns(2)
+                    with vc1:
+                        lbl = "👍 ✓" if _my_vote == 1 else "👍"
+                        if st.button(lbl, key=f"cup_{idx}", use_container_width=True, disabled=not _voter):
+                            if _my_vote == 1:
+                                delete_vote(row["Name"], _voter)
+                            else:
+                                upsert_vote(row["Name"], _voter, 1)
+                            st.rerun()
+                    with vc2:
+                        lbl = "👎 ✓" if _my_vote == -1 else "👎"
+                        if st.button(lbl, key=f"cdn_{idx}", use_container_width=True, disabled=not _voter):
+                            if _my_vote == -1:
+                                delete_vote(row["Name"], _voter)
+                            else:
+                                upsert_vote(row["Name"], _voter, -1)
+                            st.rerun()
+
+                # Action buttons — below the card
+                b1, b2 = st.columns(2)
+                with b1:
                     if st.button("Details", key=f"det_{idx}", use_container_width=True):
                         st.session_state.open_detail = row["Name"]
                         st.rerun()
-                with c_cmp:
+                with b2:
                     compare_label = "✓ In" if is_selected else "+ Cmp"
                     if st.button(compare_label, key=f"cmp_{idx}", use_container_width=True):
                         toggle_compare(row["Name"])
-                        st.rerun()
-                with c_up:
-                    lbl = "👍 ✓" if _my_vote == 1 else "👍"
-                    if st.button(lbl, key=f"cup_{idx}", use_container_width=True, disabled=not _voter):
-                        if _my_vote == 1:
-                            delete_vote(row["Name"], _voter)
-                        else:
-                            upsert_vote(row["Name"], _voter, 1)
-                        st.rerun()
-                with c_dn:
-                    lbl = "👎 ✓" if _my_vote == -1 else "👎"
-                    if st.button(lbl, key=f"cdn_{idx}", use_container_width=True, disabled=not _voter):
-                        if _my_vote == -1:
-                            delete_vote(row["Name"], _voter)
-                        else:
-                            upsert_vote(row["Name"], _voter, -1)
                         st.rerun()
 
 # ── Detail dialog trigger ─────────────────────────────────────────────────────
