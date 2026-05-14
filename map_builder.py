@@ -37,11 +37,24 @@ def build_stays_map(
         df.at[idx, "lat"] = lat
         df.at[idx, "lon"] = lon
 
-    # Build all points to compute center
+    # Reference points defined early so they feed into center/zoom calculation
+    REF_POINTS = [
+        {"name": "My Khe Beach",         "lat": 16.062, "lon": 108.247, "icon": "umbrella-beach", "color": "green"},
+        {"name": "Ben Thanh Market",     "lat": 10.773, "lon": 106.698, "icon": "shopping-bag",   "color": "blue"},
+        {"name": "Ba Na Hills",          "lat": 15.995, "lon": 107.996, "icon": "mountain",       "color": "orange"},
+        {"name": "Hoi An Old Town",      "lat": 15.877, "lon": 108.329, "icon": "landmark",       "color": "purple"},
+        {"name": "Da Nang Airport",      "lat": 16.057, "lon": 108.203, "icon": "plane",          "color": "cadetblue"},
+        {"name": "Tan Son Nhat Airport", "lat": 10.817, "lon": 106.657, "icon": "plane",          "color": "cadetblue"},
+    ]
+
+    # Build all points to compute center — include ref points so multi-city is
+    # always detected even when the filtered stays are all in one city.
     all_lats, all_lons = [], []
     valid = df[df["lat"].notna() & df["lon"].notna()]
     all_lats += valid["lat"].tolist()
     all_lons += valid["lon"].tolist()
+    all_lats += [r["lat"] for r in REF_POINTS]
+    all_lons += [r["lon"] for r in REF_POINTS]
 
     if itinerary_stops:
         all_lats += [s["lat"] for s in itinerary_stops if s.get("lat")]
@@ -112,14 +125,6 @@ def build_stays_map(
     stays_group.add_to(m)
 
     # --- Reference points (always shown) ---
-    REF_POINTS = [
-        {"name": "My Khe Beach",          "lat": 16.062, "lon": 108.247, "icon": "umbrella-beach", "color": "green"},
-        {"name": "Ben Thanh Market",      "lat": 10.773, "lon": 106.698, "icon": "shopping-bag",   "color": "blue"},
-        {"name": "Ba Na Hills",           "lat": 15.995, "lon": 107.996, "icon": "mountain",       "color": "orange"},
-        {"name": "Hoi An Old Town",       "lat": 15.877, "lon": 108.329, "icon": "landmark",       "color": "purple"},
-        {"name": "Da Nang Airport",       "lat": 16.057, "lon": 108.203, "icon": "plane",          "color": "cadetblue"},
-        {"name": "Tan Son Nhat Airport",  "lat": 10.817, "lon": 106.657, "icon": "plane",          "color": "cadetblue"},
-    ]
     ref_group = folium.FeatureGroup(name="📌 Reference points")
     for ref in REF_POINTS:
         folium.Marker(
