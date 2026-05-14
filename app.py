@@ -31,9 +31,10 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     border-radius: 12px;
     overflow: hidden;
     margin-bottom: 14px;
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.15s, transform 0.15s;
+    cursor: pointer;
 }
-.prop-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.prop-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
 .prop-card.selected { border-color: #1a1a18; border-width: 2px; }
 
 .card-img-wrap {
@@ -63,27 +64,35 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
 .card-body { padding: 10px 12px 6px; }
 .card-name {
-    font-size: 14px; font-weight: 600; color: #1a1a18; margin-bottom: 3px;
+    font-size: 16px; font-weight: 600; color: #1a1a18; margin-bottom: 3px;
     height: 2.8em; overflow: hidden;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.card-price { font-size: 18px; font-weight: 600; color: #1a1a18; }
-.card-price span { font-size: 12px; color: #888; font-weight: 400; }
-.card-rating { font-size: 12px; color: #ba7517; margin-top: 1px; }
-.card-meta { font-size: 12px; color: #888; margin-top: 2px; }
+.card-price { font-size: 20px; font-weight: 600; color: #1a1a18; }
+.card-price span { font-size: 14px; color: #888; font-weight: 400; }
+.card-rating { font-size: 14px; color: #ba7517; margin-top: 1px; }
+.card-meta { font-size: 14px; color: #888; margin-top: 2px; }
 
 .amenity-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 6px; }
 .amenity {
-    font-size: 10px; padding: 2px 7px; border-radius: 6px;
+    font-size: 12px; padding: 2px 8px; border-radius: 6px;
     background: #f1efe8; color: #444441;
 }
 .amenity.yes { background: #e1f5ee; color: #085041; }
 .amenity.no { background: #fcebeb; color: #791f1f; }
 
-.card-footer {
-    padding: 6px 12px 10px;
-    display: flex; gap: 6px; align-items: center;
+.card-actions { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #e8e7e1; }
+.card-action-row { display: flex; gap: 6px; }
+.card-btn {
+    flex: 1; text-align: center; padding: 8px 4px;
+    border-radius: 8px; border: 1px solid #333;
+    color: white; text-decoration: none !important;
+    font-size: 13px; font-weight: 500;
+    background: #1a1a18; cursor: pointer; display: block;
 }
+.card-btn:hover { background: #3a3a38; color: white !important; text-decoration: none !important; }
+.card-btn-details { font-size: 14px; }
+.card-btn-selected { background: #444; border-color: #666; }
 .price-date { font-size: 10px; color: #aaa; margin-top: 3px; }
 
 .compare-header {
@@ -99,6 +108,7 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     text-align: center; padding: 60px 20px;
     color: #888; font-size: 14px;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -107,6 +117,8 @@ if "compare_list" not in st.session_state:
     st.session_state.compare_list = []
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "cards"
+if "open_detail" not in st.session_state:
+    st.session_state.open_detail = None
 
 
 def toggle_compare(name: str):
@@ -114,6 +126,54 @@ def toggle_compare(name: str):
         st.session_state.compare_list.remove(name)
     elif len(st.session_state.compare_list) < 3:
         st.session_state.compare_list.append(name)
+
+
+@st.dialog("Property Details", width="large")
+def show_card_details(prop):
+    col_img, col_info = st.columns([1, 1])
+    with col_img:
+        if prop["Photo URL"]:
+            st.image(prop["Photo URL"], use_container_width=True)
+    with col_info:
+        loc_color = {"Da Nang": "#0c447c", "HCM": "#085041"}.get(prop["Location"], "#444")
+        st.markdown(
+            f'<span style="background:#e6f1fb;color:{loc_color};font-size:11px;'
+            f'font-weight:600;padding:3px 10px;border-radius:20px">{prop["Location"]}</span>'
+            f'&nbsp;&nbsp;'
+            f'<span style="font-size:12px;color:#888">{prop["Distance Category"]} from beach/center</span>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(f"### {prop['Name']}")
+        st.markdown(f"**Rp {int(prop['Fee/night (IDR)']):,}/night**".replace(",", "."))
+        st.markdown(f"★ {prop['Rating']:.1f} · {int(prop['Reviews'])} reviews" if pd.notna(prop["Rating"]) else "No rating")
+        st.markdown(f"{prop['Bedroom']}BR · {prop['Bed']} beds · max {prop['Max Guests']} guests")
+
+    st.divider()
+
+    a1, a2, a3, a4 = st.columns(4)
+    for col, label, val in [
+        (a1, "Beach view", prop["Beach View"]),
+        (a2, "Pool", prop["Pool"]),
+        (a3, "Washing machine", prop["Washing Machine"]),
+        (a4, "Iron", prop["Iron"]),
+    ]:
+        icon = "✓" if val.startswith("Yes") else "✗"
+        color = "#4ade80" if val.startswith("Yes") else "#f87171"
+        col.markdown(f'<div style="font-size:13px;color:{color};font-weight:600">{icon} {label}</div>'
+                     f'<div style="font-size:12px;color:#aaa">{val}</div>', unsafe_allow_html=True)
+
+    if prop["Remarks"]:
+        st.divider()
+        st.markdown(f"**Notes:** {prop['Remarks']}")
+
+    st.divider()
+    btn1, btn2 = st.columns(2)
+    with btn1:
+        if prop["Link"]:
+            st.link_button("View on Airbnb →", prop["Link"], use_container_width=True)
+    with btn2:
+        if prop["Maps"]:
+            st.link_button("Open in Maps →", prop["Maps"], use_container_width=True)
 
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -378,26 +438,36 @@ if _active == "cards":
                     f'{amenity_pill("Washer", row["Washing Machine"])}'
                     f'{amenity_pill("Iron", row["Iron"])}'
                     f'</div>'
-                    + (f'<div style="font-size:11px;color:#888;margin-top:2px">'
+                    + (f'<div style="font-size:13px;color:#888;margin-top:2px;'
+                       f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
                        f'📝 {row["Remarks"]}</div>' if row["Remarks"] else '')
                     + f'</div>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
 
-                # Buttons
-                btn_col1, btn_col2, btn_col3 = st.columns([2, 1, 1])
-                with btn_col1:
+                if st.button("Details", key=f"det_{idx}", use_container_width=True):
+                    st.session_state.open_detail = row["Name"]
+                    st.rerun()
+                c1, c2, c3 = st.columns([2, 1, 1])
+                with c1:
                     compare_label = "✓ Selected" if is_selected else "+ Compare"
                     if st.button(compare_label, key=f"cmp_{idx}", use_container_width=True):
                         toggle_compare(row["Name"])
                         st.rerun()
-                with btn_col2:
+                with c2:
                     if row["Link"]:
                         st.link_button("Airbnb", row["Link"], use_container_width=True)
-                with btn_col3:
+                with c3:
                     if row["Maps"]:
                         st.link_button("Maps", row["Maps"], use_container_width=True)
+
+# ── Detail dialog trigger ─────────────────────────────────────────────────────
+if st.session_state.open_detail:
+    match = df_all[df_all["Name"] == st.session_state.open_detail]
+    if len(match):
+        show_card_details(match.iloc[0])
+    st.session_state.open_detail = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
