@@ -486,9 +486,31 @@ if _active == "cards":
                     unsafe_allow_html=True,
                 )
 
-                if st.button("Details", key=f"det_{idx}", use_container_width=True):
-                    st.session_state.open_detail = row["Name"]
-                    st.rerun()
+                _voter = st.session_state.voter
+                _my_vote = _votes_data.get(row["Name"], {}).get(_voter) if _voter else None
+                d_col, up_col, dn_col = st.columns([2, 1, 1])
+                with d_col:
+                    if st.button("Details", key=f"det_{idx}", use_container_width=True):
+                        st.session_state.open_detail = row["Name"]
+                        st.rerun()
+                with up_col:
+                    if _voter:
+                        lbl = "👍 ✓" if _my_vote == 1 else "👍"
+                        if st.button(lbl, key=f"cup_{idx}", use_container_width=True):
+                            if _my_vote == 1:
+                                delete_vote(row["Name"], _voter)
+                            else:
+                                upsert_vote(row["Name"], _voter, 1)
+                            st.rerun()
+                with dn_col:
+                    if _voter:
+                        lbl = "👎 ✓" if _my_vote == -1 else "👎"
+                        if st.button(lbl, key=f"cdn_{idx}", use_container_width=True):
+                            if _my_vote == -1:
+                                delete_vote(row["Name"], _voter)
+                            else:
+                                upsert_vote(row["Name"], _voter, -1)
+                            st.rerun()
                 c1, c2, c3 = st.columns([2, 1, 1])
                 with c1:
                     compare_label = "✓ Selected" if is_selected else "+ Compare"
