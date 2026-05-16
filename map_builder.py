@@ -102,7 +102,7 @@ def build_stays_map(
                 <b>{price_str}</b> &nbsp;·&nbsp; {rating_str}<br>
                 <span style="color:#888">{row['Bedroom']}BR · {row['Bed']} beds · max {row['Max Guests']} guests</span><br>
                 <span style="color:#888">{row['Distance Category']} from center</span>
-                {'<br><a href="' + row["Link"] + '" target="_blank" style="color:' + loc_color + '">View on Airbnb →</a>' if row["Link"] else ''}
+                {" &nbsp; ".join(f'<a href="{row[c]}" target="_blank" style="color:{loc_color}">{lbl} →</a>' for c, lbl in [("Link","Airbnb"),("Agoda","Agoda"),("Trip","Trip")] if row.get(c))}
             </div>
         </div>
         """

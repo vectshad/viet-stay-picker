@@ -12,8 +12,11 @@ REQUIRED_COLS = [
     "Location", "Name", "Bedroom", "Bed", "Max Guests",
     "Washing Machine", "Iron", "Pool", "Beach View",
     "Distance Category", "Rating", "Reviews",
-    "Fee/night (IDR)", "Photo URL", "Remarks", "Link", "Maps",
+    "Fee/night (IDR)", "Photo URL", "Remarks", "Link", "Agoda", "Trip", "Maps",
 ]
+
+# Booking platform columns → display label
+BOOKING_COLS = [("Link", "Airbnb"), ("Agoda", "Agoda"), ("Trip", "Trip")]
 
 DISTANCE_ORDER = ["Beachfront", "<500m", "<1km", ">1km"]
 
@@ -119,6 +122,8 @@ def load_stays() -> pd.DataFrame:
     df["Name"] = df["Name"].fillna("Unnamed Property").str.strip()
     df["Remarks"] = df["Remarks"].fillna("")
     df["Link"] = df["Link"].fillna("")
+    df["Agoda"] = df["Agoda"].fillna("")
+    df["Trip"] = df["Trip"].fillna("")
     df["Maps"] = df["Maps"].fillna("")
     df["Photo URL"] = df["Photo URL"].fillna("")
 

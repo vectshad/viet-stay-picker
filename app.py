@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 from streamlit_folium import st_folium
 
-from data_loader import load_stays, get_filter_options
+from data_loader import load_stays, get_filter_options, BOOKING_COLS
 from map_builder import build_stays_map
 from votes import VOTERS, fetch_votes, upsert_vote, delete_vote
 
@@ -170,13 +170,13 @@ def show_card_details(prop):
         st.markdown(f"**Notes:** {prop['Remarks']}")
 
     st.divider()
-    btn1, btn2 = st.columns(2)
-    with btn1:
-        if prop["Link"]:
-            st.link_button("View on Airbnb →", prop["Link"], use_container_width=True)
-    with btn2:
-        if prop["Maps"]:
-            st.link_button("Open in Maps →", prop["Maps"], use_container_width=True)
+    _dlg_links = [(lbl, prop[col]) for col, lbl in BOOKING_COLS if prop[col]]
+    if prop["Maps"]:
+        _dlg_links.append(("Maps", prop["Maps"]))
+    if _dlg_links:
+        for lc, (lbl, url) in zip(st.columns(len(_dlg_links)), _dlg_links):
+            with lc:
+                st.link_button(f"Open on {lbl} →", url, use_container_width=True)
 
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -507,13 +507,13 @@ if _active == "cards":
                         else:
                             upsert_vote(row["Name"], _voter, -1)
                         st.rerun()
-                c_ab, c_mp = st.columns(2)
-                with c_ab:
-                    if row["Link"]:
-                        st.link_button("Airbnb", row["Link"], use_container_width=True)
-                with c_mp:
-                    if row["Maps"]:
-                        st.link_button("Maps", row["Maps"], use_container_width=True)
+                _links = [(lbl, row[col]) for col, lbl in BOOKING_COLS if row[col]]
+                if row["Maps"]:
+                    _links.append(("Maps", row["Maps"]))
+                if _links:
+                    for lc, (lbl, url) in zip(st.columns(len(_links)), _links):
+                        with lc:
+                            st.link_button(lbl, url, use_container_width=True)
 
 # ── Detail dialog trigger ─────────────────────────────────────────────────────
 if st.session_state.open_detail:
