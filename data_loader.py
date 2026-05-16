@@ -15,9 +15,6 @@ REQUIRED_COLS = [
     "Fee/night (IDR)", "Photo URL", "Remarks", "Link", "Agoda", "Trip", "Maps",
 ]
 
-# Booking platform columns → display label
-BOOKING_COLS = [("Link", "Airbnb"), ("Agoda", "Agoda"), ("Trip", "Trip")]
-
 DISTANCE_ORDER = ["Beachfront", "<500m", "<1km", ">1km"]
 
 # Numeric km value for each category — used for sorting and range filter

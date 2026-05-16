@@ -7,7 +7,9 @@ import streamlit as st
 import pandas as pd
 from streamlit_folium import st_folium
 
-from data_loader import load_stays, get_filter_options, BOOKING_COLS
+from data_loader import load_stays, get_filter_options
+
+BOOKING_COLS = [("Link", "Airbnb"), ("Agoda", "Agoda"), ("Trip", "Trip")]
 from map_builder import build_stays_map
 from votes import VOTERS, fetch_votes, upsert_vote, delete_vote
 
