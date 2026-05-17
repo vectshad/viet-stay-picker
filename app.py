@@ -261,7 +261,7 @@ with st.sidebar:
 
     # Min guests
     st.markdown("**Min guests capacity**")
-    min_guests = st.number_input("", min_value=1, max_value=10, value=5,
+    min_guests = st.number_input("", min_value=1, max_value=10, value=4,
                                   label_visibility="collapsed")
 
     st.divider()
