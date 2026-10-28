@@ -131,7 +131,7 @@ The URL will look like: `https://a0.muscache.com/im/pictures/miso/Hosting-.../or
 - All filtered properties as Folium markers
 - Blue = Da Nang, Green = HCM, Red = in compare list
 - Click any marker for details + Airbnb link
-- Toggle to overlay itinerary stops (see wiring instructions in `NEXT_FEATURES.md`)
+- Toggle to overlay itinerary stops (not wired up yet)
 
 ---
 
@@ -149,4 +149,4 @@ Click **🔄 Reload data from Excel** in the sidebar after editing `stays.xlsx` 
 | Photo not loading | URL must be direct image link (`.jpg`, `.webp`), not the Airbnb listing page URL |
 | Price filter not working | `Fee/night (IDR)` must be a plain number like `900000`, not `900.000` or `900k` |
 | Yes/No filters not working | Use `Yes`, `Yes (shared/outside room)`, or `No` — not `ada` / `tidak ada` |
-| Itinerary overlay not wired yet | See `NEXT_FEATURES.md` for how to enable it |
+| Itinerary overlay not wired yet | Not implemented yet |
